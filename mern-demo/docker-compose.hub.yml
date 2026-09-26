@@ -1,0 +1,14 @@
+services:
+  backend:
+    image: tuhai1108/mern-backend:1.0
+    container_name: mern-backend
+    network_mode: "host"
+    env_file:
+      - .env
+
+  frontend:
+    image: tuhai1108/mern-frontend:1.0
+    container_name: mern-frontend
+    network_mode: "host"
+    depends_on:
+      - backend
