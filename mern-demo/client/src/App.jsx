@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 
-const API_URL = '/api/students';
+const BASE_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/students` : '/api/students';
 
 function App() {
   const [students, setStudents] = useState([]);
   const [form, setForm] = useState({ studentId: '', name: '', email: '' });
+  const [editingId, setEditingId] = useState(null);
 
   const loadStudents = () => {
-    fetch(API_URL)
+    fetch(BASE_URL)
       .then(res => res.json())
       .then(setStudents)
       .catch(err => console.error('Load error:', err));
@@ -19,22 +20,41 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
-    });
+    if (editingId) {
+      await fetch(`${BASE_URL}/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      });
+      setEditingId(null);
+    } else {
+      await fetch(BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      });
+    }
     setForm({ studentId: '', name: '', email: '' });
     loadStudents();
   };
 
+  const handleEdit = (student) => {
+    setForm({ studentId: student.studentId, name: student.name, email: student.email });
+    setEditingId(student._id);
+  };
+
+  const handleCancelEdit = () => {
+    setForm({ studentId: '', name: '', email: '' });
+    setEditingId(null);
+  };
+
   const handleDelete = async (id) => {
-    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+    await fetch(`${BASE_URL}/${id}`, { method: 'DELETE' });
     loadStudents();
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: '40px auto', fontFamily: 'sans-serif' }}>
+    <div style={{ maxWidth: 650, margin: '40px auto', fontFamily: 'sans-serif' }}>
       <h1>Quản lý sinh viên</h1>
 
       <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
@@ -59,7 +79,12 @@ function App() {
           required
           style={{ marginRight: 8 }}
         />
-        <button type="submit">Thêm</button>
+        <button type="submit">{editingId ? 'Cập nhật' : 'Thêm'}</button>
+        {editingId && (
+          <button type="button" onClick={handleCancelEdit} style={{ marginLeft: 8 }}>
+            Hủy
+          </button>
+        )}
       </form>
 
       <table border="1" cellPadding="8" style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -78,6 +103,7 @@ function App() {
               <td>{s.name}</td>
               <td>{s.email}</td>
               <td>
+                <button onClick={() => handleEdit(s)} style={{ marginRight: 8 }}>Sửa</button>
                 <button onClick={() => handleDelete(s._id)}>Xóa</button>
               </td>
             </tr>
